@@ -1,0 +1,84 @@
+.home-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0b1224;
+    padding: 20px;
+}
+
+.home-box {
+    width: 420px;
+    max-width: 100%;
+    background: #182136;
+    padding: 30px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.home-logo {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    background: #f5a500;
+    color: #182136;
+    font-size: 32px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.home-title {
+    font-size: 30px;
+    color: #d5b5ff;
+    margin-bottom: 10px;
+}
+
+.home-player {
+    color: #aab3cb;
+    margin-bottom: 30px;
+}
+
+.home-player strong {
+    color: #f5a500;
+}
+
+.home-button {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border: none;
+    border-radius: 9px;
+    margin-bottom: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.home-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.home-create {
+    background: #7029db;
+}
+
+.home-join {
+    background: #087f9b;
+}
+
+.home-history {
+    background: #35405a;
+}
+
+.home-logout {
+    background: #321b2b;
+    color: #ff7183;
+    border: 1px solid #a93c54;
+}
+
+.home-logout:hover {
+    background: #52263d;
+}

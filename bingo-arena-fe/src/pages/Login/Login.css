@@ -1,0 +1,125 @@
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0b1224;
+    padding: 20px;
+}
+
+.login-box {
+    width: 420px;
+    max-width: 100%;
+    background: #182136;
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.login-title {
+    font-size: 30px;
+    color: #e6e3ff;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.login-subtitle {
+    text-align: center;
+    color: #aab3cb;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+.login-field {
+    margin-bottom: 20px;
+}
+
+.login-field label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+    color: #c5cbe0;
+}
+
+.login-field input {
+    width: 100%;
+    padding: 13px;
+    border-radius: 8px;
+    border: 1px solid #39445f;
+    outline: none;
+    background: #0b1224;
+    color: white;
+}
+
+.login-field input:focus {
+    border-color: #8646eb;
+}
+
+.login-button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: #7029db;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.login-button:hover {
+    background: #8e45f0;
+}
+
+.login-register {
+    text-align: center;
+    margin-top: 25px;
+    color: #aab3cb;
+    font-size: 14px;
+}
+
+.login-register a {
+    color: #58d7f8;
+}
+
+.login-error {
+    background: #9b1125;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.login-field input.input-error {
+    border-color: #ff526f;
+}
+
+.login-field-error {
+    color: #ff7188;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.login-error {
+    background: #8b1325;
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.login-success {
+    background: #134c3a;
+    color: #baffdc;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.login-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

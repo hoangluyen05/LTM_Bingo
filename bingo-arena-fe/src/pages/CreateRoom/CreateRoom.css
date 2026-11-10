@@ -1,0 +1,162 @@
+.create-room-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #0b1224;
+}
+
+.create-room-box {
+    width: 440px;
+    max-width: 100%;
+    padding: 32px;
+    background: #182136;
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    text-align: center;
+}
+
+.create-room-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.create-room-title {
+    color: #dcc4ff;
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.create-room-subtitle {
+    color: #aab3cb;
+    font-size: 14px;
+    margin-bottom: 26px;
+}
+
+.create-room-info,
+.create-room-code-box {
+    padding: 22px;
+    background: #10192d;
+    border: 1px solid #34415f;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.create-room-info p {
+    margin: 10px 0;
+    color: #c7d3ec;
+}
+
+.create-room-code-box p {
+    color: #aab3cb;
+    font-size: 13px;
+    margin-bottom: 10px;
+}
+
+.create-room-code {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    text-align: center;
+    color: #75e2ff;
+    font-size: 32px;
+    font-weight: bold;
+    letter-spacing: 3px;
+    margin: 12px 0;
+    outline: none;
+    cursor: text;
+}
+
+.create-room-code-box span {
+    color: #9faecc;
+    font-size: 12px;
+}
+
+.create-room-button,
+.create-room-copy-button,
+.create-room-enter-button,
+.create-room-back-button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    margin-top: 12px;
+    color: white;
+    cursor: pointer;
+}
+
+.create-room-button,
+.create-room-copy-button {
+    background: #722cdb;
+}
+
+.create-room-button:hover,
+.create-room-copy-button:hover {
+    background: #8c4bec;
+}
+
+.create-room-enter-button {
+    background: #087f9b;
+}
+
+.create-room-enter-button:hover {
+    background: #0795b5;
+}
+
+.create-room-back-button {
+    background: #35405a;
+}
+
+.create-room-back-button:hover {
+    background: #465270;
+}
+
+.create-room-button:disabled,
+.create-room-back-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.create-room-success {
+    background: #124c3a;
+    color: #a8ffda;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.create-room-error {
+    background: #86182b;
+    color: white;
+    padding: 14px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.create-room-error p {
+    margin: 0 0 8px;
+}
+
+.create-room-error-link {
+    border: none;
+    background: transparent;
+    color: #ffe4e8;
+    text-decoration: underline;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+@media (max-width: 480px) {
+    .create-room-box {
+        padding: 22px;
+    }
+
+    .create-room-code {
+        font-size: 26px;
+    }
+}

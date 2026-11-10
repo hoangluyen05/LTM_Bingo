@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+ROOT="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+VERSION=3.9.9
+MVN="$ROOT/.mvn/dist/apache-maven-$VERSION/bin/mvn"
+if [ ! -x "$MVN" ]; then
+  mkdir -p "$ROOT/.mvn/dist"
+  URL="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/$VERSION/apache-maven-$VERSION-bin.tar.gz"
+  echo "Downloading Apache Maven $VERSION (first run only)..."
+  curl -fL "$URL" | tar -xz -C "$ROOT/.mvn/dist"
+fi
+exec "$MVN" "$@"

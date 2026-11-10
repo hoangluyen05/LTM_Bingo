@@ -1,0 +1,106 @@
+.register-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0b1224;
+    padding: 20px;
+}
+
+.register-box {
+    width: 420px;
+    max-width: 100%;
+    padding: 32px;
+    border-radius: 12px;
+    background: #182136;
+}
+
+.register-title {
+    text-align: center;
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.register-subtitle {
+    text-align: center;
+    font-size: 14px;
+    color: #aab3cb;
+    margin-bottom: 30px;
+}
+
+.register-field {
+    margin-bottom: 18px;
+}
+
+.register-field label {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.register-field input {
+    width: 100%;
+    background: #0b1224;
+    border: 1px solid #39445f;
+    border-radius: 8px;
+    padding: 13px;
+    color: white;
+    outline: none;
+}
+
+.register-field input:focus {
+    border-color: #8646eb;
+}
+
+.register-button {
+    width: 100%;
+    background: #cbb1fc;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    color: #38215c;
+    font-weight: bold;
+}
+
+.register-button:hover {
+    background: #b88cf8;
+}
+
+.register-back {
+    display: block;
+    text-align: center;
+    margin-top: 24px;
+    color: #cbb1fc;
+    font-size: 14px;
+}
+
+.register-error {
+    background: #9b1125;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 18px;
+}
+
+.register-field input.input-error {
+    border-color: #ff526f;
+}
+
+.register-field-error {
+    color: #ff7188;
+    font-size: 12px;
+    margin-top: 6px;
+}
+
+.register-error {
+    background: #8b1325;
+    color: white;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 18px;
+    font-size: 14px;
+}
+
+.register-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

@@ -1,0 +1,1 @@
+-- Database schema is managed by LTM.sql; import it before starting the backend.

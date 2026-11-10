@@ -1,0 +1,153 @@
+.join-room-container {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0b1224;
+    padding: 20px;
+}
+
+.join-room-box {
+    width: 440px;
+    max-width: 100%;
+    padding: 32px;
+    background: #182136;
+    border-radius: 14px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.join-room-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.join-room-title {
+    font-size: 30px;
+    color: #dcc4ff;
+    margin-bottom: 10px;
+}
+
+.join-room-subtitle {
+    color: #aab3cb;
+    font-size: 14px;
+    margin-bottom: 28px;
+}
+
+.join-room-field {
+    text-align: left;
+    margin-bottom: 22px;
+}
+
+.join-room-field label {
+    display: block;
+    color: #d4daed;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.join-room-field input {
+    width: 100%;
+    padding: 14px;
+    background: #10192d;
+    color: #ffffff;
+    border: 1px solid #39445f;
+    border-radius: 8px;
+    outline: none;
+    font-size: 18px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-align: center;
+    text-transform: uppercase;
+}
+
+.join-room-field input:focus {
+    border-color: #8c4bec;
+}
+
+.join-room-field input.join-room-input-error {
+    border: 1px solid #ff526f;
+}
+
+.join-room-field-error {
+    color: #ff7188;
+    font-size: 13px;
+    margin-top: 8px;
+    margin-bottom: 0;
+}
+
+.join-room-hint {
+    font-size: 12px;
+    color: #909ebc;
+    margin-top: 9px;
+}
+
+.join-room-submit,
+.join-room-back {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 12px;
+}
+
+.join-room-submit {
+    background: #722cdb;
+    color: #ffffff;
+}
+
+.join-room-submit:hover:not(:disabled) {
+    background: #8b4bec;
+}
+
+.join-room-back {
+    background: #35405a;
+    color: #ffffff;
+}
+
+.join-room-back:hover:not(:disabled) {
+    background: #465270;
+}
+
+.join-room-submit:disabled,
+.join-room-back:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.join-room-error {
+    padding: 14px;
+    background: #86182b;
+    border-radius: 8px;
+    color: white;
+    margin-bottom: 20px;
+    font-size: 14px;
+    text-align: left;
+}
+
+.join-room-error p {
+    margin: 0 0 8px;
+}
+
+.join-room-error-action {
+    border: none;
+    background: transparent;
+    color: #ffe1e7;
+    text-decoration: underline;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 4px 0;
+}
+
+@media (max-width: 480px) {
+    .join-room-box {
+        padding: 22px;
+    }
+
+    .join-room-title {
+        font-size: 25px;
+    }
+}

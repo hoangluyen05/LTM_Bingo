@@ -1,0 +1,127 @@
+.result-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0b1224;
+    padding: 20px;
+}
+
+.result-box {
+    width: 100%;
+    max-width: 530px;
+    padding: 32px;
+    background: #182136;
+    border-radius: 14px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.result-trophy {
+    font-size: 65px;
+    margin-bottom: 20px;
+}
+
+.result-win {
+    color: #ffb54f;
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+
+.result-lose {
+    color: #b89aff;
+    font-size: 28px;
+    margin-bottom: 12px;
+}
+
+.result-subtitle {
+    color: #aab3cb;
+    font-size: 14px;
+    margin-bottom: 25px;
+}
+
+.result-winner {
+    background: #27344d;
+    padding: 15px;
+    border-radius: 9px;
+    color: #d4deed;
+    margin-bottom: 20px;
+}
+
+.result-winner strong {
+    color: #ffb54f;
+}
+
+.result-players {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.result-player {
+    background: #10192d;
+    border-radius: 9px;
+    padding: 20px 10px;
+}
+
+.result-player h3 {
+    color: #fff;
+    font-size: 16px;
+    margin-bottom: 6px;
+    overflow-wrap: anywhere;
+}
+
+.result-player p {
+    color: #9faecc;
+    font-size: 12px;
+}
+
+.result-player strong {
+    display: block;
+    color: #b88aff;
+    font-size: 28px;
+    margin: 15px 0 6px;
+}
+
+.result-player span {
+    color: #aab3cb;
+    font-size: 12px;
+}
+
+.result-info {
+    color: #b5c1d8;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.result-home-button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    background: #762ddb;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.result-home-button:hover {
+    background: #9050ee;
+}
+
+.result-error {
+    color: #ff879a;
+    margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+    .result-box {
+        padding: 22px;
+    }
+
+    .result-win,
+    .result-lose {
+        font-size: 23px;
+    }
+}
