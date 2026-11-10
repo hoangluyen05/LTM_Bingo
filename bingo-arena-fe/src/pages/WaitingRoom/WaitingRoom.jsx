@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 
 import {
@@ -8,7 +8,7 @@ import {
     cacheRoom,
     startGame,
     leaveRoom,
-    clearCachedRoom,
+    leaveCurrentRoom,
 } from "../../services/roomService";
 
 import { subscribeRoom } from "../../services/roomRealtime";
@@ -18,6 +18,8 @@ import "./WaitingRoom.css";
 export default function WaitingRoom() {
     const { code } = useParams();
     const navigate = useNavigate();
+
+    const codeTextRef = useRef(null);
 
     const [room, setRoom] = useState(getCachedRoom);
     const [loadingRoom, setLoadingRoom] = useState(true);
@@ -42,7 +44,9 @@ export default function WaitingRoom() {
         ["connected", "mock"].includes(connection) &&
         !busy;
 
-    // Lấy dữ liệu phòng và lắng nghe thay đổi thời gian thực
+    // ==========================================
+    // 1. LẤY THÔNG TIN PHÒNG VÀ LẮNG NGHE REALTIME
+    // ==========================================
     useEffect(() => {
         let active = true;
         let navigated = false;
@@ -54,17 +58,24 @@ export default function WaitingRoom() {
 
             navigate(`/game/${code}`, {
                 replace: true,
-                state: { matchId: data?.matchId },
+                state: {
+                    matchId: data?.matchId,
+                },
             });
         }
 
         const unsubscribe = subscribeRoom(code, {
             onStatus: (status) => {
-                if (active) setConnection(status);
+                if (active) {
+                    setConnection(status);
+                }
             },
 
             onRoom: (updatedRoom) => {
-                if (!active || updatedRoom?.roomCode !== code) {
+                if (
+                    !active ||
+                    updatedRoom?.roomCode !== code
+                ) {
                     return;
                 }
 
@@ -89,7 +100,10 @@ export default function WaitingRoom() {
 
                 setRoom((previous) =>
                     previous
-                        ? { ...previous, status: "CLOSED" }
+                        ? {
+                              ...previous,
+                              status: "CLOSED",
+                          }
                         : previous
                 );
 
@@ -97,7 +111,9 @@ export default function WaitingRoom() {
             },
 
             onError: (message) => {
-                if (active) setError(message);
+                if (active) {
+                    setError(message);
+                }
             },
         });
 
@@ -111,6 +127,7 @@ export default function WaitingRoom() {
                 if (!active) return;
 
                 setRoom(freshRoom);
+                cacheRoom(freshRoom);
 
                 if (freshRoom.status === "PLAYING") {
                     goToGame(freshRoom);
@@ -121,10 +138,15 @@ export default function WaitingRoom() {
                 }
             } catch (err) {
                 if (active) {
-                    setError(err.message || "Không tải được phòng.");
+                    setError(
+                        err.message ||
+                            "Không tải được thông tin phòng."
+                    );
                 }
             } finally {
-                if (active) setLoadingRoom(false);
+                if (active) {
+                    setLoadingRoom(false);
+                }
             }
         }
 
@@ -132,11 +154,13 @@ export default function WaitingRoom() {
 
         return () => {
             active = false;
-            unsubscribe();
+            unsubscribe?.();
         };
     }, [code, navigate, retry]);
 
-    // Chủ phòng bắt đầu trận
+    // ==========================================
+    // 2. BẮT ĐẦU TRẬN ĐẤU
+    // ==========================================
     async function handleStart() {
         if (!canStart) return;
 
@@ -150,16 +174,22 @@ export default function WaitingRoom() {
 
             navigate(`/game/${code}`, {
                 replace: true,
-                state: { matchId: startedRoom.matchId },
+                state: {
+                    matchId: startedRoom.matchId,
+                },
             });
         } catch (err) {
-            setError(err.message || "Không thể bắt đầu trận.");
+            setError(
+                err.message || "Không thể bắt đầu trận đấu."
+            );
         } finally {
             setBusy("");
         }
     }
 
-    // Rời phòng
+    // ==========================================
+    // 3. RỜI PHÒNG
+    // ==========================================
     async function handleLeave() {
         if (busy) return;
 
@@ -174,36 +204,145 @@ export default function WaitingRoom() {
 
         try {
             await leaveRoom(code);
-            navigate("/", { replace: true });
+
+            navigate("/", {
+                replace: true,
+            });
         } catch (err) {
-            setError(err.message || "Không thể rời phòng.");
+            setError(
+                err.message || "Không thể rời phòng."
+            );
         } finally {
             setBusy("");
         }
     }
 
-    // Sao chép mã phòng
+    // ==========================================
+    // 4. CHỌN MÃ PHÒNG MÀU XANH
+    // ==========================================
+    function selectRoomCode() {
+        const element = codeTextRef.current;
+
+        if (!element) return;
+
+        const selection = window.getSelection();
+
+        if (!selection) return;
+
+        const range = document.createRange();
+
+        range.selectNodeContents(element);
+
+        selection.removeAllRanges();
+        selection.addRange(range);
+    }
+
+    // ==========================================
+    // 5. SAO CHÉP MÃ PHÒNG
+    // ==========================================
     async function handleCopyCode() {
+        const roomCode = String(
+            room?.roomCode || code || ""
+        ).trim();
+
+        if (!roomCode) {
+            setNotice("Không tìm thấy mã phòng.");
+            return;
+        }
+
+        setNotice("");
+
+        // Ưu tiên Clipboard API khi chạy HTTPS/localhost.
+        if (
+            window.isSecureContext &&
+            navigator.clipboard?.writeText
+        ) {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+
+                setNotice(
+                    "Đã gửi mã phòng vào clipboard: " +
+                        roomCode
+                );
+                return;
+            } catch (err) {
+                console.warn(
+                    "Clipboard API thất bại:",
+                    err
+                );
+            }
+        }
+
+        // Dự phòng cho HTTP qua mạng LAN:
+        // chọn trực tiếp mã phòng màu xanh.
+        selectRoomCode();
+
+        // Thử sao chép lựa chọn hiện tại.
+        // Không coi kết quả execCommand là bằng chứng
+        // chắc chắn rằng clipboard đã được cập nhật.
+        let copied = false;
+
         try {
-            await navigator.clipboard.writeText(code);
-            setNotice("Đã sao chép mã phòng!");
-        } catch {
-            setNotice("Không thể sao chép. Mã phòng: " + code);
+            copied = document.execCommand("copy");
+        } catch (err) {
+            console.warn(
+                "Không thể sao chép tự động:",
+                err
+            );
+        }
+
+        // Chọn lại mã để hỗ trợ Ctrl+C thủ công.
+        selectRoomCode();
+
+       
+    }
+
+    // ==========================================
+    // 6. VỀ TRANG CHỦ
+    // ==========================================
+    async function handleReturnHome() {
+        if (busy) return;
+
+        setBusy("leave");
+        setError("");
+
+        try {
+            await leaveCurrentRoom();
+
+            navigate("/", {
+                replace: true,
+            });
+        } catch (err) {
+            setError(
+                err.message || "Không thể rời phòng."
+            );
+        } finally {
+            setBusy("");
         }
     }
 
-    function handleReturnHome() {
-        clearCachedRoom();
-        navigate("/", { replace: true });
-    }
-
+    // ==========================================
+    // 7. TRẠNG THÁI NGƯỜI CHƠI
+    // ==========================================
     function playerStatus(player) {
-        if (!player) return "Đang chờ người chơi";
-        if (player.connected === true) return "Trực tuyến";
-        if (player.connected === false) return "Mất kết nối";
+        if (!player) {
+            return "Đang chờ người chơi";
+        }
+
+        if (player.connected === true) {
+            return "Trực tuyến";
+        }
+
+        if (player.connected === false) {
+            return "Mất kết nối";
+        }
+
         return "Đã tham gia";
     }
 
+    // ==========================================
+    // 8. GIAO DIỆN ĐANG TẢI
+    // ==========================================
     if (loadingRoom) {
         return (
             <div className="waiting-room-container">
@@ -214,6 +353,9 @@ export default function WaitingRoom() {
         );
     }
 
+    // ==========================================
+    // 9. KHÔNG TÌM THẤY PHÒNG
+    // ==========================================
     if (!room || room.roomCode !== code) {
         return (
             <div className="waiting-room-container">
@@ -221,19 +363,25 @@ export default function WaitingRoom() {
                     <h2>Không thể mở phòng</h2>
 
                     <p className="waiting-room-error">
-                        {error || "Không tìm thấy thông tin phòng."}
+                        {error ||
+                            "Không tìm thấy thông tin phòng."}
                     </p>
 
                     <button
+                        type="button"
                         className="waiting-room-start"
-                        onClick={() => setRetry((n) => n + 1)}
+                        onClick={() =>
+                            setRetry((n) => n + 1)
+                        }
                     >
                         THỬ LẠI
                     </button>
 
                     <button
+                        type="button"
                         className="waiting-room-leave"
                         onClick={handleReturnHome}
+                        disabled={Boolean(busy)}
                     >
                         VỀ TRANG CHỦ
                     </button>
@@ -242,20 +390,36 @@ export default function WaitingRoom() {
         );
     }
 
+    // ==========================================
+    // 10. GIAO DIỆN PHÒNG CHỜ
+    // ==========================================
     return (
         <div className="waiting-room-container">
             <div className="waiting-room-box">
                 <h1>PHÒNG CHỜ</h1>
+
                 <p className="waiting-room-subtitle">
                     Bingo Online 1vs1
                 </p>
 
-                {/* Mã phòng */}
+                {/* MÃ PHÒNG: CHỈ HIỂN THỊ MỘT MÃ */}
                 <div className="waiting-room-code-box">
                     <span>MÃ PHÒNG</span>
-                    <h2>{room.roomCode}</h2>
+
+                    <h2
+                        ref={codeTextRef}
+                        onClick={selectRoomCode}
+                        title="Nhấn để chọn mã phòng"
+                        style={{
+                            cursor: "text",
+                            userSelect: "text",
+                        }}
+                    >
+                        {room.roomCode}
+                    </h2>
 
                     <button
+                        type="button"
                         className="waiting-room-copy"
                         onClick={handleCopyCode}
                     >
@@ -263,13 +427,17 @@ export default function WaitingRoom() {
                     </button>
                 </div>
 
+                {/* THÔNG BÁO SAO CHÉP */}
                 {notice && (
-                    <p className="waiting-room-success" role="status">
+                    <p
+                        className="waiting-room-success"
+                        role="status"
+                    >
                         {notice}
                     </p>
                 )}
 
-                {/* Trạng thái kết nối */}
+                {/* TRẠNG THÁI KẾT NỐI */}
                 <div className="waiting-room-connection">
                     <span>Trạng thái kết nối:</span>
 
@@ -277,17 +445,19 @@ export default function WaitingRoom() {
                         {connection === "mock"
                             ? "Chế độ Demo"
                             : connection === "connected"
-                                ? "Đã kết nối"
-                                : connection === "connecting"
-                                    ? "Đang kết nối..."
-                                    : "Mất kết nối"}
+                              ? "Đã kết nối"
+                              : connection === "connecting"
+                                ? "Đang kết nối..."
+                                : "Mất kết nối"}
                     </strong>
                 </div>
 
-                {/* Danh sách người chơi */}
+                {/* DANH SÁCH NGƯỜI CHƠI */}
                 <div className="waiting-room-players">
                     <div className="waiting-room-player">
-                        <div className="waiting-room-avatar">P1</div>
+                        <div className="waiting-room-avatar">
+                            P1
+                        </div>
 
                         <h3>{room.host?.displayName}</h3>
 
@@ -299,10 +469,13 @@ export default function WaitingRoom() {
                     </div>
 
                     <div className="waiting-room-player">
-                        <div className="waiting-room-avatar">P2</div>
+                        <div className="waiting-room-avatar">
+                            P2
+                        </div>
 
                         <h3>
-                            {room.guest?.displayName || "Đang chờ..."}
+                            {room.guest?.displayName ||
+                                "Đang chờ..."}
                         </h3>
 
                         <span className="waiting-room-role guest">
@@ -313,24 +486,33 @@ export default function WaitingRoom() {
                     </div>
                 </div>
 
+                {/* THÔNG BÁO LỖI */}
                 {error && (
-                    <div className="waiting-room-error" role="alert">
+                    <div
+                        className="waiting-room-error"
+                        role="alert"
+                    >
                         {error}
                     </div>
                 )}
 
-                {connection === "disconnected" && !isClosed && (
-                    <button
-                        className="waiting-room-retry"
-                        onClick={() => setRetry((n) => n + 1)}
-                    >
-                        THỬ KẾT NỐI LẠI
-                    </button>
-                )}
+                {/* KẾT NỐI LẠI */}
+                {connection === "disconnected" &&
+                    !isClosed && (
+                        <button
+                            type="button"
+                            className="waiting-room-retry"
+                            onClick={() =>
+                                setRetry((n) => n + 1)
+                            }
+                        >
+                            THỬ KẾT NỐI LẠI
+                        </button>
+                    )}
 
+                {/* PHÒNG CHƯA ĐÓNG */}
                 {!isClosed && (
                     <>
-                        {/* Chỉ chủ phòng thấy nút bắt đầu */}
                         {isHost ? (
                             <>
                                 {!hasTwoPlayers && (
@@ -340,6 +522,7 @@ export default function WaitingRoom() {
                                 )}
 
                                 <button
+                                    type="button"
                                     className="waiting-room-start"
                                     onClick={handleStart}
                                     disabled={!canStart}
@@ -356,6 +539,7 @@ export default function WaitingRoom() {
                         )}
 
                         <button
+                            type="button"
                             className="waiting-room-leave"
                             onClick={handleLeave}
                             disabled={Boolean(busy)}
@@ -367,12 +551,17 @@ export default function WaitingRoom() {
                     </>
                 )}
 
+                {/* PHÒNG ĐÃ ĐÓNG */}
                 {isClosed && (
                     <button
+                        type="button"
                         className="waiting-room-leave"
                         onClick={handleReturnHome}
+                        disabled={Boolean(busy)}
                     >
-                        VỀ TRANG CHỦ
+                        {busy === "leave"
+                            ? "ĐANG RỜI PHÒNG..."
+                            : "VỀ TRANG CHỦ"}
                     </button>
                 )}
             </div>

@@ -6,7 +6,11 @@ import {
     useParams,
 } from "react-router";
 
-import { getCachedRoom } from "../../services/roomService";
+import {
+    getCachedRoom,
+    clearCachedRoom,
+} from "../../services/roomService";
+
 import { getGameState } from "../../services/gameService";
 
 import "./Result.css";
@@ -32,18 +36,25 @@ export default function Result() {
         async function loadResult() {
             try {
                 const room = getCachedRoom();
-                const matchId = routeMatchId || room?.matchId;
+
+                const matchId =
+                    routeMatchId || room?.matchId;
 
                 if (!matchId) {
-                    throw new Error("Không tìm thấy mã trận đấu.");
+                    throw new Error(
+                        "Không tìm thấy mã trận đấu."
+                    );
                 }
 
-                const result = await getGameState(matchId);
+                const result =
+                    await getGameState(matchId);
 
                 if (!active) return;
 
                 if (result.status !== "FINISHED") {
-                    throw new Error("Trận đấu chưa kết thúc.");
+                    throw new Error(
+                        "Trận đấu chưa kết thúc."
+                    );
                 }
 
                 setGame(result);
@@ -65,6 +76,15 @@ export default function Result() {
         };
     }, [routeMatchId]);
 
+    // Trở về trang chủ và xóa thông tin phòng cũ
+    function goHome() {
+        clearCachedRoom();
+
+        navigate("/", {
+            replace: true,
+        });
+    }
+
     if (loading) {
         return (
             <div className="result-container">
@@ -79,11 +99,13 @@ export default function Result() {
         return (
             <div className="result-container">
                 <div className="result-box">
-                    <p className="result-error">{error}</p>
+                    <p className="result-error">
+                        {error}
+                    </p>
 
                     <button
                         className="result-home-button"
-                        onClick={() => navigate("/")}
+                        onClick={goHome}
                     >
                         VỀ TRANG CHỦ
                     </button>
@@ -92,7 +114,8 @@ export default function Result() {
         );
     }
 
-    const won = game.winnerUserId === user?.id;
+    const won =
+        game.winnerUserId === user?.id;
 
     const me = game.players.find(
         (player) => player.id === user?.id
@@ -109,7 +132,13 @@ export default function Result() {
                     {won ? "🏆" : "🎮"}
                 </div>
 
-                <h1 className={won ? "result-win" : "result-lose"}>
+                <h1
+                    className={
+                        won
+                            ? "result-win"
+                            : "result-lose"
+                    }
+                >
                     {won
                         ? "BẠN ĐÃ CHIẾN THẮNG!"
                         : "BẠN ĐÃ THUA!"}
@@ -125,7 +154,8 @@ export default function Result() {
                         {
                             game.players.find(
                                 (player) =>
-                                    player.id === game.winnerUserId
+                                    player.id ===
+                                    game.winnerUserId
                             )?.displayName
                         }
                     </strong>
@@ -133,27 +163,42 @@ export default function Result() {
 
                 <div className="result-players">
                     <div className="result-player">
-                        <h3>{me?.displayName}</h3>
+                        <h3>
+                            {me?.displayName}
+                        </h3>
+
                         <p>Bạn</p>
-                        <strong>{me?.bingoLines}/5</strong>
+
+                        <strong>
+                            {me?.bingoLines}/5
+                        </strong>
+
                         <span>Đường Bingo</span>
                     </div>
 
                     <div className="result-player">
-                        <h3>{opponent?.displayName}</h3>
+                        <h3>
+                            {opponent?.displayName}
+                        </h3>
+
                         <p>Đối thủ</p>
-                        <strong>{opponent?.bingoLines}/5</strong>
+
+                        <strong>
+                            {opponent?.bingoLines}/5
+                        </strong>
+
                         <span>Đường Bingo</span>
                     </div>
                 </div>
 
                 <p className="result-info">
-                    Tổng số lượt gọi: {game.calledNumbers.length}
+                    Tổng số lượt gọi:{" "}
+                    {game.calledNumbers.length}
                 </p>
 
                 <button
                     className="result-home-button"
-                    onClick={() => navigate("/")}
+                    onClick={goHome}
                 >
                     VỀ TRANG CHỦ
                 </button>

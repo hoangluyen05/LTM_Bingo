@@ -11,6 +11,7 @@ import BingoBoard from "../../components/BingoBoard/BingoBoard";
 import {
     getCachedRoom,
     getRoomState,
+    leaveCurrentRoom,
 } from "../../services/roomService";
 
 import { getGameState } from "../../services/gameService";
@@ -31,6 +32,7 @@ export default function Game() {
     const [error, setError] = useState("");
     const [connection, setConnection] = useState("connecting");
     const [retry, setRetry] = useState(0);
+    const [leaving, setLeaving] = useState(false);
 
     const user = JSON.parse(
         sessionStorage.getItem("bingo_user") || "null"
@@ -70,7 +72,11 @@ export default function Game() {
                 if (!matchId) {
                     let room = getCachedRoom();
 
-                    if (!room || room.roomCode !== code || !room.matchId) {
+                    if (
+                        !room ||
+                        room.roomCode !== code ||
+                        !room.matchId
+                    ) {
                         room = await getRoomState(code);
                     }
 
@@ -83,14 +89,14 @@ export default function Game() {
                     );
                 }
 
-                const initialState = await getGameState(matchId);
+                const initialState =
+                    await getGameState(matchId);
 
                 if (!active) return;
 
                 applyState(initialState);
                 setLoading(false);
 
-                // Nếu trận kết thúc thì đã chuyển trang
                 if (initialState.status !== "PLAYING") {
                     return;
                 }
@@ -191,6 +197,36 @@ export default function Game() {
         }
     }
 
+    // Rời trận: người rời bị xử thua
+    async function handleLeaveGame() {
+        if (leaving || busy) return;
+
+        const confirmed = window.confirm(
+            "Rời trận sẽ bị xử thua. Bạn chắc chắn muốn về trang chủ?"
+        );
+
+        if (!confirmed) return;
+
+        setLeaving(true);
+        setError("");
+
+        try {
+            await leaveCurrentRoom();
+
+            transportRef.current?.unsubscribe();
+            transportRef.current = null;
+
+            navigate("/", { replace: true });
+        } catch (err) {
+            setError(
+                err.message ||
+                "Không thể rời trận. Hãy thử lại."
+            );
+        } finally {
+            setLeaving(false);
+        }
+    }
+
     if (loading) {
         return (
             <div className="game-container">
@@ -211,14 +247,16 @@ export default function Game() {
 
                     <button
                         className="game-retry-button"
-                        onClick={() => setRetry((value) => value + 1)}
+                        onClick={() =>
+                            setRetry((value) => value + 1)
+                        }
                     >
                         THỬ LẠI
                     </button>
 
                     <button
                         className="game-back-button"
-                        onClick={() => navigate("/")}
+                        onClick={handleLeaveGame}
                     >
                         VỀ TRANG CHỦ
                     </button>
@@ -235,7 +273,8 @@ export default function Game() {
         (player) => player.id !== user?.id
     );
 
-    const myTurn = game.currentTurnUserId === user?.id;
+    const myTurn =
+        game.currentTurnUserId === user?.id;
 
     const connected =
         connection === "connected" ||
@@ -245,8 +284,8 @@ export default function Game() {
         game.status === "PLAYING" &&
         myTurn &&
         connected &&
-        !busy;
-
+        !busy &&
+        !leaving;
 
     return (
         <div className="game-container">
@@ -258,10 +297,27 @@ export default function Game() {
                     <span>Phòng: {game.roomCode}</span>
                 </div>
 
+                <button
+                    type="button"
+                    className="game-back-button"
+                    onClick={handleLeaveGame}
+                    disabled={leaving || busy}
+                >
+                    {leaving
+                        ? "ĐANG RỜI TRẬN..."
+                        : "RỜI TRẬN / VỀ TRANG CHỦ"}
+                </button>
+
+                {error && (
+                    <p className="game-error" role="alert">
+                        {error}
+                    </p>
+                )}
+
                 {/* CHIA BỐ CỤC TRÁI - PHẢI */}
                 <div className="game-layout">
 
-                    {/* ========== BÊN TRÁI ========== */}
+                    {/* BÊN TRÁI */}
                     <section className="game-left">
                         <h2 className="game-board-title">
                             BẢNG BINGO CỦA BẠN
@@ -283,13 +339,15 @@ export default function Game() {
                         </p>
                     </section>
 
-                    {/* ========== BÊN PHẢI ========== */}
+                    {/* BÊN PHẢI */}
                     <aside className="game-right">
 
                         {/* THÔNG TIN NGƯỜI CHƠI */}
                         <div className="game-players">
                             <div className="game-player">
-                                <h3>{me?.displayName || "Bạn"}</h3>
+                                <h3>
+                                    {me?.displayName || "Bạn"}
+                                </h3>
                                 <span>BẠN</span>
 
                                 <strong>
@@ -301,7 +359,8 @@ export default function Game() {
 
                             <div className="game-player">
                                 <h3>
-                                    {opponent?.displayName || "Đối thủ"}
+                                    {opponent?.displayName ||
+                                        "Đối thủ"}
                                 </h3>
 
                                 <span>ĐỐI THỦ</span>
@@ -343,7 +402,10 @@ export default function Game() {
 
                         {/* THÔNG BÁO LỖI */}
                         {error && (
-                            <div className="game-error" role="alert">
+                            <div
+                                className="game-error"
+                                role="alert"
+                            >
                                 {error}
                             </div>
                         )}
@@ -378,8 +440,8 @@ export default function Game() {
                         {/* DANH SÁCH SỐ */}
                         <div className="game-called-section">
                             <h3>
-                                DANH SÁCH SỐ ĐÃ GỌI
-                                {" "}({game.calledNumbers.length}/25)
+                                DANH SÁCH SỐ ĐÃ GỌI{" "}
+                                ({game.calledNumbers.length}/25)
                             </h3>
 
                             <div className="game-called-list">
@@ -388,22 +450,22 @@ export default function Game() {
                                         Chưa có số nào được gọi.
                                     </p>
                                 ) : (
-                                    game.calledNumbers.map((number) => (
-                                        <span
-                                            className="game-called-number"
-                                            key={number}
-                                        >
-                                            {number}
-                                        </span>
-                                    ))
+                                    game.calledNumbers.map(
+                                        (number) => (
+                                            <span
+                                                className="game-called-number"
+                                                key={number}
+                                            >
+                                                {number}
+                                            </span>
+                                        )
+                                    )
                                 )}
                             </div>
                         </div>
-
                     </aside>
                 </div>
             </div>
         </div>
     );
-
 }

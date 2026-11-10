@@ -11,4 +11,4 @@ spring:
       mode: never
 app:
   token-secret: "${BINGO_TOKEN_SECRET}"
-  allowed-origins: "http://localhost:5173,http://127.0.0.1:5173,http://172.16.10.152:5173"
+  allowed-origins:  "http://localhost:5173,http://127.0.0.1:5173,http://172.16.10.152:5173,http://172.11.19.229:5173"
