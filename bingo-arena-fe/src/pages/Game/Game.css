@@ -352,3 +352,9 @@
         gap: 7px;
     }
 }
+/* Đồng hồ 10 giây chuẩn bị */
+.game-preparation { flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    gap: 12px; flex-wrap: wrap; padding: 9px 14px; border-radius: 10px;
+    background: #293756; border: 1px solid #67e8f9; color: #67e8f9; text-align: center; }
+.game-preparation strong { font-size: 17px; }
+.game-preparation span { font-size: 12px; color: #dbeafe; }

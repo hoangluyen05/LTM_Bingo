@@ -70,6 +70,17 @@ public class GameController {
         return game.start(code, uid(token));
     }
 
+    public record SwapRequest(int from, int to) {}
+
+    @PostMapping("/matches/{id}/board/swap")
+    public Map<String, Object> swapBoard(
+            @PathVariable long id,
+            @RequestHeader("Authorization") String token,
+            @RequestBody SwapRequest request
+    ) {
+        return game.swapBoard(id, uid(token), request.from(), request.to());
+    }
+
     @GetMapping("/matches/history")
     public List<Map<String, Object>> history(
             @RequestHeader("Authorization") String token

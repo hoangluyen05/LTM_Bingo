@@ -111,7 +111,7 @@ public class GameService {
     public Map<String, Object> join(String code, long uid) {
         var r = roomRow(code);
         if (!"WAITING".equals(r.get("status")))
-            throw err(HttpStatus.CONFLICT, "ROOM_UNAVAILABLE", "Phòng không còn chờ.");
+            throw err(HttpStatus.CONFLICT, "ROOM_UNAVAILABLE", "Phòng đã bắt đầu.");
         if (num(r.get("host_user_id")) == uid)
             throw err(HttpStatus.CONFLICT, "ROOM_OWNER", "Bạn là chủ phòng.");
         if (r.get("guest_user_id") != null && num(r.get("guest_user_id")) != uid)
@@ -153,7 +153,7 @@ public class GameService {
         String roomCode = str(r.get("room_code"));
         if ("PLAYING".equals(status)) {
             var matches = db.queryForList(
-                    "SELECT id FROM matches WHERE room_id=? AND status='PLAYING' ORDER BY id DESC LIMIT 1",
+                    "SELECT id FROM matches WHERE room_id=? AND status IN ('PREPARING','PLAYING') ORDER BY id DESC LIMIT 1",
                     roomId);
             if (!matches.isEmpty()) {
                 long mid = num(matches.get(0).get("id"));
@@ -163,7 +163,7 @@ public class GameService {
                 int changed = db.update(
                         "UPDATE matches SET status='FINISHED', winner_user_id=?, " +
                         "current_turn_user_id=NULL, ended_at=NOW() " +
-                        "WHERE id=? AND status='PLAYING'",
+                        "WHERE id=? AND status IN ('PREPARING','PLAYING')",
                         winner, mid);
                 if (changed == 1) {
                     db.update("UPDATE match_players SET result=CASE " +
@@ -208,7 +208,8 @@ public class GameService {
                 "UPDATE rooms SET status='PLAYING' WHERE id=? AND status='WAITING' AND guest_user_id IS NOT NULL", rid);
         if (n == 0)
             throw err(HttpStatus.CONFLICT, "ROOM_NOT_READY", "Phòng không sẵn sàng.");
-        db.update("INSERT INTO matches(room_id,current_turn_user_id) VALUES(?,?)", rid, uid);
+        db.update("INSERT INTO matches(room_id,status,current_turn_user_id,preparation_ends_at_ms) " +
+                "VALUES(?,'PREPARING',?,?)", rid, uid, System.currentTimeMillis() + 10_000L);
         long mid = num(one("SELECT id FROM matches WHERE room_id=? ORDER BY id DESC LIMIT 1", rid).get("id"));
         try {
             db.update("INSERT INTO match_players(match_id,user_id,board_json) VALUES(?,?,?)", mid, uid,
@@ -273,14 +274,58 @@ public class GameService {
         view.put("winnerUserId", m.get("winner_user_id"));
         view.put("lastCalledNumber", last.isEmpty() ? null : last.get(0).get("called_number"));
         view.put("lastCalledByUserId", last.isEmpty() ? null : last.get(0).get("called_by_user_id"));
+        view.put("preparationEndsAtMs", m.get("preparation_ends_at_ms"));
+        view.put("serverNowMs", System.currentTimeMillis());
         view.put("startedAt", str(m.get("started_at")));
         view.put("endedAt", str(m.get("ended_at")));
         return view;
     }
 
+    // Đổi vị trí hai ô trên bảng của chính người chơi, chỉ trong 10 giây chuẩn bị.
+    // Khóa bản ghi match để serialize thao tác swap và thời điểm bắt đầu.
+    @Transactional
+    public Map<String, Object> swapBoard(long mid, long uid, int from, int to) {
+        var m = one("SELECT m.*,r.host_user_id,r.guest_user_id FROM matches m " +
+                "JOIN rooms r ON r.id=m.room_id WHERE m.id=? FOR UPDATE", mid);
+        matchMember(m, uid);
+        if (!"PREPARING".equals(str(m.get("status"))) ||
+                System.currentTimeMillis() >= num(m.get("preparation_ends_at_ms")))
+            throw err(HttpStatus.CONFLICT, "PREPARATION_ENDED", "Đã hết thời gian sắp xếp bảng.");
+        if (from < 0 || from >= 25 || to < 0 || to >= 25)
+            throw err(HttpStatus.BAD_REQUEST, "INVALID_POSITION", "Vị trí phải nằm trong khoảng 0 đến 24.");
+        var row = one("SELECT board_json FROM match_players WHERE match_id=? AND user_id=?", mid, uid);
+        var board = parseBoard(row.get("board_json"));
+        int a = board.get(from / 5).get(from % 5);
+        int b = board.get(to / 5).get(to % 5);
+        board.get(from / 5).set(from % 5, b);
+        board.get(to / 5).set(to % 5, a);
+        try {
+            db.update("UPDATE match_players SET board_json=? WHERE match_id=? AND user_id=?",
+                    json.writeValueAsString(board), mid, uid);
+        } catch (Exception e) { throw new IllegalStateException(e); }
+        afterCommit(() -> socket.publishMatch(mid));
+        return matchView(mid, uid);
+    }
+
+    // Scheduler chạy trên server, không phụ thuộc client có đang mở trang hay không.
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 250)
+    @Transactional
+    public void activatePreparedMatches() {
+        long now = System.currentTimeMillis();
+        var rows = db.queryForList("SELECT id FROM matches WHERE status='PREPARING' " +
+                "AND preparation_ends_at_ms<=?", now);
+        for (var row : rows) {
+            long mid = num(row.get("id"));
+            int changed = db.update("UPDATE matches SET status='PLAYING' " +
+                    "WHERE id=? AND status='PREPARING' AND preparation_ends_at_ms<=?", mid, now);
+            if (changed == 1) afterCommit(() -> socket.publishMatch(mid));
+        }
+    }
+
     @Transactional
     public void call(long mid, long uid, int number) {
-        var m = matchRow(mid);
+        var m = one("SELECT m.*,r.room_code,r.host_user_id,r.guest_user_id FROM matches m " +
+                "JOIN rooms r ON r.id=m.room_id WHERE m.id=? FOR UPDATE", mid);
         matchMember(m, uid);
         if (!"PLAYING".equals(m.get("status")))
             throw err(HttpStatus.CONFLICT, "MATCH_FINISHED", "Trận đấu đã kết thúc.");

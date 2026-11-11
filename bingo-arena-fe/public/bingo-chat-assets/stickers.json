@@ -1,0 +1,26 @@
+{
+  "laugh": {
+    "image": "/assets/stickers/laugh.svg",
+    "sound": "/assets/sounds/laugh.wav"
+  },
+  "celebrate": {
+    "image": "/assets/stickers/celebrate.svg",
+    "sound": "/assets/sounds/celebrate.wav"
+  },
+  "cry": {
+    "image": "/assets/stickers/cry.svg",
+    "sound": "/assets/sounds/cry.wav"
+  },
+  "angry": {
+    "image": "/assets/stickers/angry.svg",
+    "sound": "/assets/sounds/angry.wav"
+  },
+  "surprised": {
+    "image": "/assets/stickers/surprised.svg",
+    "sound": "/assets/sounds/surprised.wav"
+  },
+  "cool": {
+    "image": "/assets/stickers/cool.svg",
+    "sound": "/assets/sounds/cool.wav"
+  }
+}

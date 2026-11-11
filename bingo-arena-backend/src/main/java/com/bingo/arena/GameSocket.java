@@ -83,6 +83,12 @@ public class GameSocket extends TextWebSocketHandler {
                     clients.put(s.getId(), new Client(s, c.uid(), null, mid));
                     send(s, "MATCH_STATE", Map.of("state", state));
                 }
+                case "SWAP_BOARD" -> {
+                    long mid = p.path("matchId").asLong();
+                    if (c.match() == null || c.match() != mid)
+                        throw new ApiError(HttpStatus.FORBIDDEN, "FORBIDDEN", "Chưa theo dõi trận này.");
+                    game().swapBoard(mid, c.uid(), p.path("from").asInt(-1), p.path("to").asInt(-1));
+                }
                 case "CALL_NUMBER" -> {
                     long mid = p.path("matchId").asLong();
                     if (c.match() == null || c.match() != mid)

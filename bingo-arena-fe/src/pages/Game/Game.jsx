@@ -14,7 +14,7 @@ import {
     leaveCurrentRoom,
 } from "../../services/roomService";
 
-import { getGameState } from "../../services/gameService";
+import { getGameState, swapBoardPositions } from "../../services/gameService";
 import { subscribeGame } from "../../services/gameRealtime";
 
 import "./Game.css";
@@ -25,6 +25,12 @@ export default function Game() {
     const navigate = useNavigate();
 
     const transportRef = useRef(null);
+    const swapQueueRef = useRef(Promise.resolve());
+    const pendingSwapsRef = useRef(0);
+    const gameRef = useRef(null);
+    const [nowMs, setNowMs] = useState(Date.now());
+    const [clockOffset, setClockOffset] = useState(0);
+    const [savingBoard, setSavingBoard] = useState(false);
 
     const [game, setGame] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -48,7 +54,11 @@ export default function Game() {
         function applyState(state) {
             if (!active) return;
 
+            gameRef.current = state;
             setGame(state);
+            if (Number.isFinite(Number(state.serverNowMs))) {
+                setClockOffset(Number(state.serverNowMs) - Date.now());
+            }
             setBusy(false);
             setError("");
 
@@ -97,7 +107,7 @@ export default function Game() {
                 applyState(initialState);
                 setLoading(false);
 
-                if (initialState.status !== "PLAYING") {
+                if (initialState.status !== "PLAYING" && initialState.status !== "PREPARING") {
                     return;
                 }
 
@@ -146,6 +156,42 @@ export default function Game() {
             }
         };
     }, [code, routeMatchId, navigate, retry]);
+
+    useEffect(() => {
+        if (game?.status !== "PREPARING") return;
+        const timer = window.setInterval(() => setNowMs(Date.now()), 100);
+        return () => window.clearInterval(timer);
+    }, [game?.status]);
+
+    // Gửi tuần tự các lần hoán đổi để không bị ghi đè sai thứ tự.
+    function handleSwap(from, to) {
+        const current = gameRef.current;
+        if (!current || current.status !== "PREPARING" ||
+            Date.now() + clockOffset >= Number(current.preparationEndsAtMs)) return;
+        if (from === to || pendingSwapsRef.current > 0) return;
+        pendingSwapsRef.current++;
+        setSavingBoard(true);
+        setError("");
+        swapQueueRef.current = swapQueueRef.current
+            .catch(() => {})
+            .then(async () => {
+                try {
+                    const updated = await swapBoardPositions(current.id, from, to);
+                    gameRef.current = updated;
+                    setGame(updated);
+                } catch (err) {
+                    setError(err.message || "Không lưu được vị trí số.");
+                    try {
+                        const fresh = await getGameState(current.id);
+                        gameRef.current = fresh;
+                        setGame(fresh);
+                    } catch { /* giữ thông báo lỗi chính */ }
+                } finally {
+                    pendingSwapsRef.current--;
+                    setSavingBoard(pendingSwapsRef.current > 0);
+                }
+            });
+    }
 
     // Người chơi chọn số trên bảng
     async function handleSelectNumber(number) {
@@ -280,6 +326,13 @@ export default function Game() {
         connection === "connected" ||
         connection === "mock";
 
+    const preparing = game.status === "PREPARING";
+    const remainingMs = preparing
+        ? Math.max(0, Number(game.preparationEndsAtMs) - (nowMs + clockOffset))
+        : 0;
+    const remainingSeconds = Math.ceil(remainingMs / 1000);
+    const canArrange = preparing && remainingMs > 0 && !savingBoard && !leaving;
+
     const canPlay =
         game.status === "PLAYING" &&
         myTurn &&
@@ -314,6 +367,15 @@ export default function Game() {
                     </p>
                 )}
 
+                {preparing && (
+                    <div className="game-preparation" role="status">
+                        <strong>CHUẨN BỊ TRẬN ĐẤU — {remainingSeconds}s</strong>
+                        <span>{remainingMs > 0
+                            ? "Kéo thả các ô số để tự sắp xếp bảng trước khi bắt đầu"
+                            : "Hết thời gian — đang chờ máy chủ bắt đầu trận..."}</span>
+                    </div>
+                )}
+
                 {/* CHIA BỐ CỤC TRÁI - PHẢI */}
                 <div className="game-layout">
 
@@ -328,14 +390,18 @@ export default function Game() {
                                 board={game.myBoard}
                                 calledNumbers={game.calledNumbers}
                                 canPlay={canPlay}
+                                canArrange={canArrange}
+                                onSwap={handleSwap}
                                 onSelect={handleSelectNumber}
                             />
                         </div>
 
                         <p className="game-instruction">
-                            {myTurn
-                                ? "Chọn một số chưa được gọi trên bảng"
-                                : "Đang chờ đối thủ chọn số..."}
+                            {preparing
+                                ? (savingBoard ? "Đang lưu vị trí các số..." : "Sắp xếp bảng trong 10 giây chuẩn bị")
+                                : myTurn
+                                    ? "Chọn một số chưa được gọi trên bảng"
+                                    : "Đang chờ đối thủ chọn số..."}
                         </p>
                     </section>
 
@@ -381,9 +447,11 @@ export default function Game() {
                                     : "game-turn opponent-turn"
                             }
                         >
-                            {myTurn
-                                ? "ĐANG ĐẾN LƯỢT CỦA BẠN"
-                                : "ĐANG ĐẾN LƯỢT ĐỐI THỦ"}
+                            {preparing
+                                ? "ĐANG CHUẨN BỊ — CHƯA ĐƯỢC GỌI SỐ"
+                                : myTurn
+                                    ? "ĐANG ĐẾN LƯỢT CỦA BẠN"
+                                    : "ĐANG ĐẾN LƯỢT ĐỐI THỦ"}
                         </div>
 
                         {/* TRẠNG THÁI KẾT NỐI */}
