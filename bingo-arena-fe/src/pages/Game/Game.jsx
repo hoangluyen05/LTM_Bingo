@@ -7,6 +7,7 @@ import {
 } from "react-router";
 
 import BingoBoard from "../../components/BingoBoard/BingoBoard";
+import RoomChat from "../../components/RoomChat/RoomChat";
 
 import {
     getCachedRoom,
@@ -28,6 +29,7 @@ export default function Game() {
     const swapQueueRef = useRef(Promise.resolve());
     const pendingSwapsRef = useRef(0);
     const gameRef = useRef(null);
+    const finishTimerRef = useRef(null);
     const [nowMs, setNowMs] = useState(Date.now());
     const [clockOffset, setClockOffset] = useState(0);
     const [savingBoard, setSavingBoard] = useState(false);
@@ -39,6 +41,8 @@ export default function Game() {
     const [connection, setConnection] = useState("connecting");
     const [retry, setRetry] = useState(0);
     const [leaving, setLeaving] = useState(false);
+    const [chatMessages, setChatMessages] = useState([]);
+    const [chatError, setChatError] = useState("");
 
     const user = JSON.parse(
         sessionStorage.getItem("bingo_user") || "null"
@@ -63,10 +67,12 @@ export default function Game() {
             setError("");
 
             if (state.status === "FINISHED") {
-                navigate(`/result/${code}`, {
-                    replace: true,
-                    state: { matchId: state.id },
-                });
+                if (!finishTimerRef.current) finishTimerRef.current = window.setTimeout(() => {
+                    navigate(`/result/${code}`, {
+                        replace: true,
+                        state: { matchId: state.id },
+                    });
+                }, 2800);
             }
         }
 
@@ -113,6 +119,22 @@ export default function Game() {
 
                 transport = subscribeGame(matchId, {
                     onState: applyState,
+                    onChatMessage: (message) => {
+                        if (!active || !message) return;
+                        setChatError("");
+                        setChatMessages(previous => [...previous.filter(item => item.id !== message.id), { ...message, live: true }]
+                            .sort((a, b) => a.id - b.id).slice(-100));
+                    },
+                    onChatHistory: (messages) => {
+                        if (!active) return;
+                        setChatError("");
+                        setChatMessages(previous => {
+                            const merged = new Map(messages.map(message => [message.id, message]));
+                            previous.filter(message => Number(message.matchId) === Number(matchId)).forEach(message => merged.set(message.id, message));
+                            return [...merged.values()].sort((a, b) => a.id - b.id).slice(-100);
+                        });
+                    },
+                    onChatError: (message) => { if (active) setChatError(message); },
 
                     onStatus: (status) => {
                         if (!active) return;
@@ -148,6 +170,8 @@ export default function Game() {
 
         return () => {
             active = false;
+            window.clearTimeout(finishTimerRef.current);
+            finishTimerRef.current = null;
 
             transport?.unsubscribe();
 
@@ -245,7 +269,7 @@ export default function Game() {
 
     // Rời trận: người rời bị xử thua
     async function handleLeaveGame() {
-        if (leaving || busy) return;
+        if (leaving) return;
 
         const confirmed = window.confirm(
             "Rời trận sẽ bị xử thua. Bạn chắc chắn muốn về trang chủ?"
@@ -352,13 +376,14 @@ export default function Game() {
 
                 <button
                     type="button"
-                    className="game-back-button"
+                    className="game-back-button game-leave-button"
                     onClick={handleLeaveGame}
-                    disabled={leaving || busy}
+                    disabled={leaving}
+                    title="Rời phòng khi đang chơi sẽ bị xử thua"
                 >
                     {leaving
                         ? "ĐANG RỜI TRẬN..."
-                        : "RỜI TRẬN / VỀ TRANG CHỦ"}
+                        : "RỜI PHÒNG · Rời khi đang chơi sẽ bị xử thua"}
                 </button>
 
                 {error && (
@@ -387,6 +412,8 @@ export default function Game() {
 
                         <div className="game-board-area">
                             <BingoBoard
+                                key={game.id}
+                                matchId={game.id}
                                 board={game.myBoard}
                                 calledNumbers={game.calledNumbers}
                                 canPlay={canPlay}
@@ -509,7 +536,7 @@ export default function Game() {
                         <div className="game-called-section">
                             <h3>
                                 DANH SÁCH SỐ ĐÃ GỌI{" "}
-                                ({game.calledNumbers.length}/25)
+                                ({game.calledNumbers.length}/{game.myBoard.flat().length})
                             </h3>
 
                             <div className="game-called-list">
@@ -532,6 +559,17 @@ export default function Game() {
                             </div>
                         </div>
                     </aside>
+                    <RoomChat
+                        key={game.id}
+                        messages={chatMessages.filter(message => Number(message.matchId) === Number(game.id))}
+                        userId={user?.id}
+                        connected={connection === "connected" && !leaving}
+                        error={chatError}
+                        onSend={(type, content) => {
+                            if (!transportRef.current?.sendChat) throw new Error("Chat chưa kết nối.");
+                            transportRef.current.sendChat(type, content);
+                        }}
+                    />
                 </div>
             </div>
         </div>

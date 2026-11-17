@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS rooms (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     room_code VARCHAR(12) NOT NULL UNIQUE,
+    board_size TINYINT UNSIGNED NOT NULL DEFAULT 5 CHECK (board_size BETWEEN 5 AND 8),
 
     host_user_id BIGINT NOT NULL,
 
@@ -148,7 +149,8 @@ CREATE TABLE IF NOT EXISTS match_players (
     result ENUM(
         'UNFINISHED',
         'WIN',
-        'LOSE'
+        'LOSE',
+        'DRAW'
     ) NOT NULL DEFAULT 'UNFINISHED',
 
     CONSTRAINT fk_match_players_match
@@ -167,10 +169,10 @@ CREATE TABLE IF NOT EXISTS match_players (
         UNIQUE (match_id, user_id),
 
     CONSTRAINT chk_bingo_lines
-        CHECK (bingo_lines BETWEEN 0 AND 12),
+        CHECK (bingo_lines BETWEEN 0 AND 18),
 
     CONSTRAINT chk_marked_count
-        CHECK (marked_count BETWEEN 0 AND 25),
+        CHECK (marked_count BETWEEN 0 AND 64),
 
     INDEX idx_match_players_user (user_id)
 
@@ -214,10 +216,10 @@ CREATE TABLE IF NOT EXISTS called_numbers (
         UNIQUE (match_id, called_number),
 
     CONSTRAINT chk_turn_no
-        CHECK (turn_no BETWEEN 1 AND 25),
+        CHECK (turn_no BETWEEN 1 AND 64),
 
     CONSTRAINT chk_called_number
-        CHECK (called_number BETWEEN 1 AND 25),
+        CHECK (called_number BETWEEN 1 AND 64),
 
     INDEX idx_called_numbers_user
         (called_by_user_id)
@@ -236,3 +238,20 @@ DESCRIBE rooms;
 DESCRIBE matches;
 DESCRIBE match_players;
 DESCRIBE called_numbers;
+
+
+-- Run on existing installations before using chat. Safe to run again.
+USE bingo_online;
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    match_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    message_type VARCHAR(10) NOT NULL,
+    content VARCHAR(500) NOT NULL,
+    created_at_ms BIGINT NOT NULL,
+    CONSTRAINT fk_chat_match FOREIGN KEY (match_id) REFERENCES matches(id),
+    CONSTRAINT fk_chat_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT chk_chat_type CHECK (message_type IN ('TEXT', 'STICKER')),
+    INDEX idx_chat_match (match_id, id),
+    INDEX idx_chat_rate (match_id, user_id, created_at_ms)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

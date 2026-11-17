@@ -26,6 +26,7 @@ export default function CreateRoom() {
             : null;
     });
 
+    const [boardSize, setBoardSize] = useState(5);
     const [loading, setLoading] = useState(false);
     const [leaving, setLeaving] = useState(false);
     const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ export default function CreateRoom() {
         setNotice("");
 
         try {
-            const newRoom = await createRoom();
+            const newRoom = await createRoom(boardSize);
 
             setRoom(newRoom);
             setNotice("Tạo phòng thành công!");
@@ -328,13 +329,26 @@ export default function CreateRoom() {
                 {!room && (
                     <>
                         <div className="create-room-info">
+                            <div className="create-room-size-field">
+                                <label htmlFor="board-size">Kích thước bảng</label>
+                                <div className="create-room-size-select">
+                                    <svg className="create-room-size-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                                        <rect x="3" y="3" width="18" height="18" rx="3" />
+                                        <path d="M9 3v18M15 3v18M3 9h18M3 15h18" />
+                                    </svg>
+                                    <select id="board-size" value={boardSize} onChange={e => setBoardSize(Number(e.target.value))} disabled={loading || leaving} aria-describedby="board-size-hint">
+                                        {[5, 6, 7, 8].map(size => <option key={size} value={size}>{size} × {size} — {size * size} ô</option>)}
+                                    </select>
+                                    <svg className="create-room-size-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                        <path d="m6 9 6 6 6-6" />
+                                    </svg>
+                                </div>
+                                <span id="board-size-hint">Bảng gồm {boardSize * boardSize} số · Thắng khi đủ 5 đường Bingo</span>
+                            </div>
                             <p>
                                 Chế độ: Bingo Online 1vs1
                             </p>
 
-                            <p>
-                                Số người chơi tối đa: 2
-                            </p>
                         </div>
 
                         <button
@@ -353,6 +367,7 @@ export default function CreateRoom() {
                 {/* ĐÃ TẠO PHÒNG */}
                 {room && (
                     <>
+                        <p>Bingo {room.boardSize ?? 5}×{room.boardSize ?? 5}</p>
                         <div className="create-room-code-box">
                             <p>
                                 MÃ PHÒNG CỦA BẠN

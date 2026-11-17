@@ -1,11 +1,23 @@
 
-import { useNavigate } from "react-router";
-import { useState } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { useCallback, useEffect, useRef, useState } from "react";
+import LoginWelcome from "../../components/LoginWelcome/LoginWelcome";
 import { leaveCurrentRoom } from "../../services/roomService";
 import "./Home.css";
 
 function Home() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [showWelcome, setShowWelcome] = useState(() => Boolean(location.state?.welcome));
+    const homeTitle = useRef(null);
+    const finishWelcome = useCallback(() => {
+        setShowWelcome(false);
+        window.requestAnimationFrame(() => homeTitle.current?.focus());
+    }, []);
+
+    useEffect(() => {
+        if (location.state?.welcome) navigate("/", { replace: true, state: null });
+    }, [location.state, navigate]);
 
     const [logoutBusy, setLogoutBusy] = useState(false);
     const [logoutError, setLogoutError] = useState("");
@@ -51,10 +63,11 @@ function Home() {
 
     return (
         <div className="home-container">
-            <div className="home-box">
+            {showWelcome && <LoginWelcome username={username} onDone={finishWelcome} />}
+            <div className="home-box" inert={showWelcome}>
                 <div className="home-logo">B</div>
 
-                <h1 className="home-title">
+                <h1 className="home-title" ref={homeTitle} tabIndex={-1}>
                     BINGO ARENA
                 </h1>
 

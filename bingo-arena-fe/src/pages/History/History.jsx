@@ -142,6 +142,7 @@ export default function History() {
                     >
                         Thua
                     </button>
+                    <button type="button" className={filter === "DRAW" ? "history-active" : ""} onClick={() => setFilter("DRAW")} aria-pressed={filter === "DRAW"}>Hòa</button>
                 </div>
 
                 {/* Đang tải */}
@@ -228,12 +229,12 @@ export default function History() {
                                                 <td>
                                                     <span
                                                         className={
-                                                            item.result === "WIN"
+                                                            item.result === "DRAW" ? "history-result history-draw" : item.result === "WIN"
                                                                 ? "history-result history-win"
                                                                 : "history-result history-lose"
                                                         }
                                                     >
-                                                        {item.result === "WIN"
+                                                        {item.result === "DRAW" ? "HÒA" : item.result === "WIN"
                                                             ? "THẮNG"
                                                             : "THUA"}
                                                     </span>

@@ -68,7 +68,7 @@ export default function Login() {
                 JSON.stringify(data.user)
             );
 
-            navigate("/", { replace: true });
+            navigate("/", { replace: true, state: { welcome: true } });
         } catch (error) {
             setServerMessage(error.message);
             setServerErrors(error.fieldErrors || {});

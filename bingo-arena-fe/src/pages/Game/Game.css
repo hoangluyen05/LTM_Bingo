@@ -48,7 +48,7 @@
 /* CHIA HAI CỘT TRÁI PHẢI */
 .game-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(240px, .8fr) minmax(280px, .85fr);
     gap: 18px;
     flex: 1;
     min-height: 0;
@@ -99,7 +99,7 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
-    overflow: hidden;
+    overflow: auto;
 }
 
 /* THÔNG TIN 2 NGƯỜI CHƠI */
@@ -358,3 +358,26 @@
     background: #293756; border: 1px solid #67e8f9; color: #67e8f9; text-align: center; }
 .game-preparation strong { font-size: 17px; }
 .game-preparation span { font-size: 12px; color: #dbeafe; }
+
+
+/* Keep chat and game controls accessible on smaller screens. */
+@media (min-width: 901px) and (max-width: 1200px) {
+    .game-container { height: auto; min-height: 100dvh; overflow: visible; align-items: flex-start; }
+    .game-box { height: auto; overflow: visible; }
+    .game-layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); overflow: visible; }
+    .game-right { max-height: 640px; }
+    .room-chat { grid-column: 1 / -1; height: 430px; }
+}
+@media (max-width: 900px) {
+    .room-chat { height: 460px; }
+    .game-called-section { flex: none; }
+}
+@media (min-width: 1201px) {
+    .game-called-section { flex: 1 0 130px; overflow-y: auto; }
+    .game-right { overflow-y: auto; scrollbar-width: thin; }
+}
+
+.game-leave-button { align-self: flex-end; width: auto; flex-shrink: 0; background: #4b273b; border: 1px solid #ad526d; color: #ffd0db; }
+.game-leave-button:hover:not(:disabled) { background: #69314b; }
+.game-leave-button:disabled { opacity: .6; cursor: wait; }
+@media (max-width: 480px) { .game-leave-button { width: 100%; font-size: 11px; } }

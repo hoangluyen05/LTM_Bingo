@@ -403,6 +403,7 @@ export default function WaitingRoom() {
                 </p>
 
                 {/* MÃ PHÒNG: CHỈ HIỂN THỊ MỘT MÃ */}
+                <p>Bingo {room.boardSize ?? 5}×{room.boardSize ?? 5}</p>
                 <div className="waiting-room-code-box">
                     <span>MÃ PHÒNG</span>
 

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
     useLocation,
     useNavigate,
-    useParams,
 } from "react-router";
 
 import {
@@ -14,11 +13,11 @@ import {
 import { getGameState } from "../../services/gameService";
 
 import "./Result.css";
+import ResultScene from "./ResultScene";
 
 export default function Result() {
     const navigate = useNavigate();
     const location = useLocation();
-    const { code } = useParams();
 
     const [game, setGame] = useState(null);
     const [error, setError] = useState("");
@@ -114,8 +113,10 @@ export default function Result() {
         );
     }
 
-    const won =
-        game.winnerUserId === user?.id;
+    const draw = game.result === "DRAW" || game.winnerUserId == null ||
+        (game.players.length === 2 && game.players.every(player => Number(player.bingoLines) >= 5));
+    const won = !draw && game.winnerUserId === user?.id;
+    const outcome = draw ? "draw" : won ? "win" : "lose";
 
     const me = game.players.find(
         (player) => player.id === user?.id
@@ -126,33 +127,35 @@ export default function Result() {
     );
 
     return (
-        <div className="result-container">
-            <div className="result-box">
+        <div className={`result-container result-theme-${outcome}`}>
+            <ResultScene outcome={outcome} />
+            <div className="result-box" role="region" aria-label="Kết quả trận đấu">
+                <span className="result-scene-label">{draw ? "MỘT NGÀY ĐẸP TRỜI" : won ? "KHOẢNH KHẮC TỎA SÁNG" : "SAU CƠN MƯA, TRỜI LẠI SÁNG"}</span>
                 <div className="result-trophy">
-                    {won ? "🏆" : "🎮"}
+                    {draw ? "🤝" : won ? "🏆" : "🎮"}
                 </div>
 
                 <h1
                     className={
-                        won
+                        draw ? "result-draw" : won
                             ? "result-win"
                             : "result-lose"
                     }
                 >
-                    {won
+                    {draw ? "TRẬN ĐẤU HÒA!" : won
                         ? "BẠN ĐÃ CHIẾN THẮNG!"
                         : "BẠN ĐÃ THUA!"}
                 </h1>
 
                 <p className="result-subtitle">
-                    Trận đấu Bingo 1vs1 đã kết thúc
+                    {draw ? "Cả hai cùng đạt đủ 5 đường Bingo trong một lượt gọi!" : "Trận đấu Bingo 1vs1 đã kết thúc"}
                 </p>
 
                 <div className="result-winner">
-                    Người chiến thắng:{" "}
+                    {draw ? "Kết quả: " : "Người chiến thắng: "}
                     <strong>
                         {
-                            game.players.find(
+                            draw ? "HÒA — Chúc mừng cả hai người chơi!" : game.players.find(
                                 (player) =>
                                     player.id ===
                                     game.winnerUserId

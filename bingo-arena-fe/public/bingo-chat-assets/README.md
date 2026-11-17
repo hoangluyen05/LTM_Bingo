@@ -2,7 +2,7 @@
 
 6 sticker SVG và 6 âm thanh WAV được tạo mới cho dự án, không lấy từ bên thứ ba.
 
-Sao chép thư mục `stickers` và `sounds` vào `frontend/public/assets/`.
+Tài nguyên được phục vụ trực tiếp từ `/bingo-chat-assets/`, không cần sao chép sang thư mục khác.
 
 Dùng `stickers.json` để ánh xạ stickerId đến file tương ứng.
 

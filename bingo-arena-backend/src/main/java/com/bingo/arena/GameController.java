@@ -21,9 +21,10 @@ public class GameController {
 
     @PostMapping("/rooms")
     public Map<String, Object> create(
-            @RequestHeader("Authorization") String token
+            @RequestHeader("Authorization") String token,
+            @RequestParam(defaultValue = "5") int boardSize
     ) {
-        return game.create(uid(token));
+        return game.create(uid(token), boardSize);
     }
 
     @PostMapping("/rooms/{code}/join")

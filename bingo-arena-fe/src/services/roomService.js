@@ -37,8 +37,8 @@ export function cacheRoom(room) {
     );
 }
 
-export async function createRoom() {
-    const room = await apiRequest("/rooms", {
+export async function createRoom(boardSize = 5) {
+    const room = await apiRequest(`/rooms?boardSize=${boardSize}`, {
         method: "POST",
     });
 

@@ -1,26 +1,26 @@
 {
   "laugh": {
-    "image": "/assets/stickers/laugh.svg",
-    "sound": "/assets/sounds/laugh.wav"
+    "image": "/bingo-chat-assets/stickers/laugh.svg",
+    "sound": "/bingo-chat-assets/sounds/laugh.wav"
   },
   "celebrate": {
-    "image": "/assets/stickers/celebrate.svg",
-    "sound": "/assets/sounds/celebrate.wav"
+    "image": "/bingo-chat-assets/stickers/celebrate.svg",
+    "sound": "/bingo-chat-assets/sounds/celebrate.wav"
   },
   "cry": {
-    "image": "/assets/stickers/cry.svg",
-    "sound": "/assets/sounds/cry.wav"
+    "image": "/bingo-chat-assets/stickers/cry.svg",
+    "sound": "/bingo-chat-assets/sounds/cry.wav"
   },
   "angry": {
-    "image": "/assets/stickers/angry.svg",
-    "sound": "/assets/sounds/angry.wav"
+    "image": "/bingo-chat-assets/stickers/angry.svg",
+    "sound": "/bingo-chat-assets/sounds/angry.wav"
   },
   "surprised": {
-    "image": "/assets/stickers/surprised.svg",
-    "sound": "/assets/sounds/surprised.wav"
+    "image": "/bingo-chat-assets/stickers/surprised.svg",
+    "sound": "/bingo-chat-assets/sounds/surprised.wav"
   },
   "cool": {
-    "image": "/assets/stickers/cool.svg",
-    "sound": "/assets/sounds/cool.wav"
+    "image": "/bingo-chat-assets/stickers/cool.svg",
+    "sound": "/bingo-chat-assets/sounds/cool.wav"
   }
 }

@@ -76,6 +76,7 @@ public class GameService {
         var m = new LinkedHashMap<String, Object>();
         m.put("id", id);
         m.put("roomCode", room.get("room_code"));
+        m.put("boardSize", room.get("board_size"));
         m.put("status", room.get("status"));
         m.put("host", player(num(room.get("host_user_id"))));
         m.put("guest", room.get("guest_user_id") == null ? null : player(num(room.get("guest_user_id"))));
@@ -92,6 +93,13 @@ public class GameService {
 
     @Transactional
     public Map<String, Object> create(long uid) {
+        return create(uid, 5);
+    }
+
+    @Transactional
+    public Map<String, Object> create(long uid, int boardSize) {
+        if (boardSize < 5 || boardSize > 8)
+            throw err(HttpStatus.BAD_REQUEST, "INVALID_BOARD_SIZE", "Board size must be between 5 and 8.");
         if (!db.queryForList(
                 "SELECT id FROM rooms WHERE status IN ('WAITING','PLAYING') AND (host_user_id=? OR guest_user_id=?)",
                 uid, uid).isEmpty())
@@ -99,7 +107,7 @@ public class GameService {
         for (int i = 0; i < 20; i++) {
             String code = "BG-" + (1000 + new java.security.SecureRandom().nextInt(9000));
             try {
-                db.update("INSERT INTO rooms(room_code,host_user_id) VALUES(?,?)", code, uid);
+                db.update("INSERT INTO rooms(room_code,host_user_id,board_size) VALUES(?,?,?)", code, uid, boardSize);
                 return roomView(roomRow(code));
             } catch (org.springframework.dao.DuplicateKeyException ignored) {
             }
@@ -213,9 +221,9 @@ public class GameService {
         long mid = num(one("SELECT id FROM matches WHERE room_id=? ORDER BY id DESC LIMIT 1", rid).get("id"));
         try {
             db.update("INSERT INTO match_players(match_id,user_id,board_json) VALUES(?,?,?)", mid, uid,
-                    json.writeValueAsString(BingoRules.board()));
+                    json.writeValueAsString(BingoRules.board(((Number) r.get("board_size")).intValue())));
             db.update("INSERT INTO match_players(match_id,user_id,board_json) VALUES(?,?,?)", mid,
-                    r.get("guest_user_id"), json.writeValueAsString(BingoRules.board()));
+                    r.get("guest_user_id"), json.writeValueAsString(BingoRules.board(((Number) r.get("board_size")).intValue())));
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
@@ -256,6 +264,7 @@ public class GameService {
             var p = new LinkedHashMap<>(player(pid));
             p.put("bingoLines", num(row.get("bingo_lines")));
             p.put("markedCount", num(row.get("marked_count")));
+            p.put("result", row.get("result"));
             players.add(p);
             if (pid == uid)
                 myBoard = parseBoard(row.get("board_json"));
@@ -264,6 +273,9 @@ public class GameService {
                 "SELECT called_number,called_by_user_id FROM called_numbers WHERE match_id=? ORDER BY turn_no DESC LIMIT 1",
                 id);
         var view = new LinkedHashMap<String, Object>();
+        boolean draw = "FINISHED".equals(m.get("status")) && players.size() == 2 &&
+                players.stream().allMatch(p -> num(p.get("bingoLines")) >= 5);
+        if (draw) players.forEach(p -> p.put("result", "DRAW"));
         view.put("id", id);
         view.put("roomCode", m.get("room_code"));
         view.put("status", m.get("status"));
@@ -271,7 +283,9 @@ public class GameService {
         view.put("myBoard", myBoard);
         view.put("calledNumbers", called);
         view.put("currentTurnUserId", m.get("current_turn_user_id"));
-        view.put("winnerUserId", m.get("winner_user_id"));
+        view.put("winnerUserId", draw ? null : m.get("winner_user_id"));
+        view.put("result", draw ? "DRAW" : players.stream()
+                .filter(p -> num(p.get("id")) == uid).findFirst().orElseThrow().get("result"));
         view.put("lastCalledNumber", last.isEmpty() ? null : last.get(0).get("called_number"));
         view.put("lastCalledByUserId", last.isEmpty() ? null : last.get(0).get("called_by_user_id"));
         view.put("preparationEndsAtMs", m.get("preparation_ends_at_ms"));
@@ -291,14 +305,15 @@ public class GameService {
         if (!"PREPARING".equals(str(m.get("status"))) ||
                 System.currentTimeMillis() >= num(m.get("preparation_ends_at_ms")))
             throw err(HttpStatus.CONFLICT, "PREPARATION_ENDED", "Đã hết thời gian sắp xếp bảng.");
-        if (from < 0 || from >= 25 || to < 0 || to >= 25)
-            throw err(HttpStatus.BAD_REQUEST, "INVALID_POSITION", "Vị trí phải nằm trong khoảng 0 đến 24.");
         var row = one("SELECT board_json FROM match_players WHERE match_id=? AND user_id=?", mid, uid);
         var board = parseBoard(row.get("board_json"));
-        int a = board.get(from / 5).get(from % 5);
-        int b = board.get(to / 5).get(to % 5);
-        board.get(from / 5).set(from % 5, b);
-        board.get(to / 5).set(to % 5, a);
+        int size = board.size();
+        if (from < 0 || from >= size * size || to < 0 || to >= size * size)
+            throw err(HttpStatus.BAD_REQUEST, "INVALID_POSITION", "Invalid board position.");
+        int a = board.get(from / size).get(from % size);
+        int b = board.get(to / size).get(to % size);
+        board.get(from / size).set(from % size, b);
+        board.get(to / size).set(to % size, a);
         try {
             db.update("UPDATE match_players SET board_json=? WHERE match_id=? AND user_id=?",
                     json.writeValueAsString(board), mid, uid);
@@ -331,8 +346,10 @@ public class GameService {
             throw err(HttpStatus.CONFLICT, "MATCH_FINISHED", "Trận đấu đã kết thúc.");
         if (num(m.get("current_turn_user_id")) != uid)
             throw err(HttpStatus.CONFLICT, "NOT_YOUR_TURN", "Chưa đến lượt của bạn.");
-        if (number < 1 || number > 25)
-            throw err(HttpStatus.BAD_REQUEST, "INVALID_NUMBER", "Số phải từ 1 đến 25.");
+        var ownBoard = parseBoard(one("SELECT board_json FROM match_players WHERE match_id=? AND user_id=?", mid, uid).get("board_json"));
+        int maxNumber = ownBoard.size() * ownBoard.size();
+        if (number < 1 || number > maxNumber)
+            throw err(HttpStatus.BAD_REQUEST, "INVALID_NUMBER", "Number must be between 1 and " + maxNumber + ".");
         var called = new LinkedHashSet<Integer>();
         for (var row : db.queryForList("SELECT called_number FROM called_numbers WHERE match_id=? ORDER BY turn_no",
                 mid))
@@ -352,12 +369,17 @@ public class GameService {
         }
         boolean h = scores.get(host) >= 5, g = scores.get(guest) >= 5;
         if (h || g) {
-            long winner = h && g ? uid : h ? host : guest;
+            // Evaluate both boards after the same call; neither the host nor caller gets priority.
+            boolean draw = h && g;
+            Long winner = draw ? null : h ? host : guest;
             db.update(
                     "UPDATE matches SET status='FINISHED',winner_user_id=?,current_turn_user_id=NULL,ended_at=NOW() WHERE id=?",
                     winner, mid);
-            db.update("UPDATE match_players SET result=CASE WHEN user_id=? THEN 'WIN' ELSE 'LOSE' END WHERE match_id=?",
-                    winner, mid);
+            if (draw)
+                db.update("UPDATE match_players SET result='DRAW' WHERE match_id=?", mid);
+            else
+                db.update("UPDATE match_players SET result=CASE WHEN user_id=? THEN 'WIN' ELSE 'LOSE' END WHERE match_id=?",
+                        winner, mid);
             db.update("UPDATE rooms SET status='CLOSED',closed_at=NOW() WHERE id=?", m.get("room_id"));
             afterCommit(() -> socket.publishFinished(mid));
             publishRoom(str(m.get("room_code")));

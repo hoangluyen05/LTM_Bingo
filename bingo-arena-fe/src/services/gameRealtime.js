@@ -1,6 +1,6 @@
 import { getGameState } from "./gameService";
 const WS_URL = import.meta.env.VITE_WS_URL || `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/game`;
-export function subscribeGame(matchId, { onState, onStatus, onError } = {}) {
+export function subscribeGame(matchId, { onState, onStatus, onError, onChatMessage, onChatHistory, onChatError } = {}) {
   const token = sessionStorage.getItem("bingo_access_token");
   if (!token) {
     onError?.("Vui lòng đăng nhập lại."); onStatus?.("disconnected");
@@ -22,6 +22,12 @@ export function subscribeGame(matchId, { onState, onStatus, onError } = {}) {
     } else if (type === "GAME_FINISHED") {
       if (payload.state) onState?.(payload.state);
       else try { onState?.(await getGameState(matchId)); } catch (e) { onError?.(e.message); }
+    } else if (type === "CHAT_MESSAGE") {
+      onChatMessage?.(payload.message);
+    } else if (type === "CHAT_HISTORY") {
+      onChatHistory?.(payload.messages || []);
+    } else if (type === "CHAT_ERROR") {
+      onChatError?.(payload.message || "Không gửi được tin nhắn.");
     } else if (type === "ERROR" || type === "AUTH_ERROR") {
       onError?.(payload.message || "Server xử lý thất bại.");
       if (type === "AUTH_ERROR") socket.close();
@@ -30,6 +36,10 @@ export function subscribeGame(matchId, { onState, onStatus, onError } = {}) {
   socket.onerror = () => { if (!disposed) onError?.("Không thể kết nối WebSocket."); };
   socket.onclose = () => { subscribed = false; if (!disposed) onStatus?.("disconnected"); };
   return {
+    sendChat: (messageType, content) => {
+      if (socket.readyState !== WebSocket.OPEN || !subscribed) throw new Error("Chat đang mất kết nối. Hãy kết nối lại.");
+      socket.send(JSON.stringify({ type: "CHAT_SEND", payload: { matchId: Number(matchId), messageType, content } }));
+    },
     sendNumber: async (number) => {
       if (socket.readyState !== WebSocket.OPEN || !subscribed) throw new Error("Chưa kết nối trận đấu.");
       socket.send(JSON.stringify({ type: "CALL_NUMBER", payload: { matchId: Number(matchId), number } }));

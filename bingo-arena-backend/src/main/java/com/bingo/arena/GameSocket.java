@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GameSocket extends TextWebSocketHandler {
     private final Auth auth;
     private final ObjectMapper json;
+    private final ChatService chat;
     private final org.springframework.beans.factory.ObjectProvider<GameService> gameProvider;
     private final Map<String, Client> clients = new ConcurrentHashMap<>();
 
@@ -20,10 +21,11 @@ public class GameSocket extends TextWebSocketHandler {
     }
 
     public GameSocket(Auth auth, ObjectMapper json,
-            org.springframework.beans.factory.ObjectProvider<GameService> gameProvider) {
+            org.springframework.beans.factory.ObjectProvider<GameService> gameProvider, ChatService chat) {
         this.auth = auth;
         this.json = json;
         this.gameProvider = gameProvider;
+        this.chat = chat;
     }
 
     private GameService game() {
@@ -42,8 +44,10 @@ public class GameSocket extends TextWebSocketHandler {
 
     private void send(WebSocketSession s, String type, Object payload) {
         try {
-            if (s.isOpen()) {
-                s.sendMessage(new TextMessage(json.writeValueAsString(Map.of("type", type, "payload", payload))));
+            synchronized (s) {
+                if (s.isOpen()) {
+                    s.sendMessage(new TextMessage(json.writeValueAsString(Map.of("type", type, "payload", payload))));
+                }
             }
         } catch (Exception ignored) {
         }
@@ -82,6 +86,26 @@ public class GameSocket extends TextWebSocketHandler {
                     var state = game().matchView(mid, c.uid());
                     clients.put(s.getId(), new Client(s, c.uid(), null, mid));
                     send(s, "MATCH_STATE", Map.of("state", state));
+                    try {
+                        send(s, "CHAT_HISTORY", Map.of("messages", chat.history(mid, c.uid())));
+                    } catch (Exception e) {
+                        error(s, "CHAT_ERROR", "Chat tạm thời chưa sẵn sàng. Vui lòng kết nối lại sau.");
+                    }
+                }
+                case "CHAT_SEND" -> {
+                    try {
+                        long mid = p.path("matchId").asLong();
+                        if (c.match() == null || c.match() != mid)
+                            throw new ApiError(HttpStatus.FORBIDDEN, "FORBIDDEN", "Chưa theo dõi trận này.");
+                        var message = chat.post(mid, c.uid(), p.path("messageType").asText(), p.path("content").asText());
+                        for (Client receiver : clients.values())
+                            if (receiver.match() != null && receiver.match() == mid)
+                                send(receiver.session(), "CHAT_MESSAGE", Map.of("message", message));
+                    } catch (ApiError e) {
+                        error(s, "CHAT_ERROR", e.getMessage());
+                    } catch (Exception e) {
+                        error(s, "CHAT_ERROR", "Không gửi được tin nhắn. Vui lòng thử lại.");
+                    }
                 }
                 case "SWAP_BOARD" -> {
                     long mid = p.path("matchId").asLong();
